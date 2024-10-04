@@ -67,9 +67,9 @@ This repository is dedicated to our group project assigned in the **Programming 
 <table align="center">
         <tr>
             <td><a href="#about">About</a></td>        
-            <td><a href="#how-to-use-this-project">Getting started</td>
+            <td><a href="#how-to-use-this-project">Getting started</td> <!-- This will be added as the project is completed as mentioned -->
             <!-- <td><a href="#demo">Demo</a></td> -->
-            <td><a href="#project-roadmap--">Project Roadmap</a></td>
+            <td><a href="#project-roadmap">Project Roadmap</a></td>
             <!-- <td><a href="#documentation">Documentation</a></td> -->
             <td><a href="#contributors">Contributors</a></td>
         </tr>
