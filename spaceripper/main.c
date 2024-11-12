@@ -1,11 +1,13 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 #define SCREEN_WIDTH 360
 #define SCREEN_HEIGHT 800
 #define SHIP_SPEED 5
 #define BULLET_SPEED 10
+#define STAR_COUNT 100
 
 typedef struct {
     SDL_Rect rect;
@@ -16,6 +18,17 @@ typedef struct {
     SDL_Rect rect;
     int active;
 } Bullet;
+
+typedef struct {
+    int x, y;
+} Star;
+
+void generate_stars(Star stars[], int count) {
+    for (int i = 0; i < count; i++) {
+        stars[i].x = rand() % SCREEN_WIDTH;
+        stars[i].y = rand() % SCREEN_HEIGHT;
+    }
+}
 
 int main(int argc, char* argv[]) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) {
@@ -50,8 +63,8 @@ int main(int argc, char* argv[]) {
     Spaceship spaceship;
     spaceship.rect.x = SCREEN_WIDTH / 2;
     spaceship.rect.y = SCREEN_HEIGHT - 60;
-    spaceship.rect.w = 50; 
-    spaceship.rect.h = 50; 
+    spaceship.rect.w = 50;
+    spaceship.rect.h = 50;
     spaceship.surface = spaceship_surface;
 
     Bullet bullet;
@@ -60,6 +73,10 @@ int main(int argc, char* argv[]) {
     bullet.rect.w = 10;
     bullet.rect.h = 10;
     bullet.active = 0;
+
+    Star stars[STAR_COUNT];
+    srand(time(NULL));
+    generate_stars(stars, STAR_COUNT);
 
     int running = 1;
     SDL_Event event;
@@ -100,8 +117,14 @@ int main(int argc, char* argv[]) {
             }
         }
 
-        SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255); 
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); 
         SDL_RenderClear(renderer);
+
+        // Draw stars
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        for (int i = 0; i < STAR_COUNT; i++) {
+            SDL_RenderDrawPoint(renderer, stars[i].x, stars[i].y);
+        }
 
         SDL_Texture* spaceship_texture = SDL_CreateTextureFromSurface(renderer, spaceship.surface);
         SDL_RenderCopy(renderer, spaceship_texture, NULL, &spaceship.rect);
