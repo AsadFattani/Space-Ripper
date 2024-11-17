@@ -63,7 +63,10 @@ void display_game_over(SDL_Renderer *renderer, SDL_Texture *end_screen) {
     int waiting = 1;
     while (waiting) {
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_KEYDOWN) {
+            if (event.type == SDL_QUIT) {
+                SDL_Quit();
+                exit(0);
+            } else if (event.type == SDL_KEYDOWN) {
                 if (event.key.keysym.sym == SDLK_RETURN) {
                     waiting = 0;
                 } else if (event.key.keysym.sym == SDLK_ESCAPE) {
@@ -73,6 +76,16 @@ void display_game_over(SDL_Renderer *renderer, SDL_Texture *end_screen) {
             }
         }
         SDL_Delay(100);
+    }
+}
+
+void render_countdown(SDL_Renderer *renderer, SDL_Texture *number_textures[]) {
+    for (int i = 3; i > 0; i--) {
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+        SDL_RenderClear(renderer);
+        render_text(renderer, i, number_textures, SCREEN_WIDTH / 2 - 10, SCREEN_HEIGHT / 2 - 15);
+        SDL_RenderPresent(renderer);
+        SDL_Delay(1000);
     }
 }
 
@@ -117,6 +130,8 @@ int main(int argc, char *argv[]) {
     SDL_FreeSurface(spaceship_surface);
     SDL_FreeSurface(meteor_surface);
     SDL_FreeSurface(end_screen_surface);
+
+    render_countdown(renderer, number_textures); // Add countdown before starting the game
 
     Star stars[STAR_COUNT];
     srand((unsigned int)time(NULL));
