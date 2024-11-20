@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -35,15 +36,18 @@ void generate_stars(Star stars[], int count) {
     }
 }
 
-void render_text(SDL_Renderer *renderer, int value, SDL_Texture *numbers[], int x, int y) {
+void render_text(SDL_Renderer *renderer, TTF_Font *font, int value, int x, int y) {
+    SDL_Color color = {255, 255, 255, 255};
     char value_str[10];
     sprintf(value_str, "%d", value);
 
-    for (int i = 0; value_str[i] != '\0'; i++) {
-        SDL_Rect dest = {x, y, 20, 30};
-        SDL_RenderCopy(renderer, numbers[value_str[i] - '0'], NULL, &dest);
-        x += 25;
-    }
+    SDL_Surface *surface = TTF_RenderText_Solid(font, value_str, color);
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+
+    SDL_Rect dest = {x, y, surface->w, surface->h};
+    SDL_RenderCopy(renderer, texture, NULL, &dest);
+    SDL_DestroyTexture(texture);
 }
 
 void reset_meteor(Meteor *meteor) {
@@ -55,9 +59,31 @@ void reset_meteor(Meteor *meteor) {
     meteor->speed = METEOR_SPEED_START + rand() % 2;
 }
 
-void display_game_over(SDL_Renderer *renderer, SDL_Texture *end_screen) {
-    SDL_RenderCopy(renderer, end_screen, NULL, NULL);
+void display_game_over(SDL_Renderer *renderer, TTF_Font *font, int score) {
+    SDL_Color color = {255, 0, 0, 255};
+    SDL_Surface *surface = TTF_RenderText_Solid(font, "GAME OVER", color);
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+
+    SDL_Rect dest = {SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 50, 200, 50};
+    
+    SDL_SetRenderDrawColor(renderer, 28, 27, 27, 255); // Set background to grey
+    SDL_RenderClear(renderer);
+    SDL_RenderCopy(renderer, texture, NULL, &dest);
+    SDL_DestroyTexture(texture);
+
+    char score_text[20];
+    sprintf(score_text, "Score: %d", score);
+    surface = TTF_RenderText_Solid(font, score_text, color);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_FreeSurface(surface);
+
+    dest.y += 60; // Position below "GAME OVER"
+    dest.w = 100;
+    dest.h = 25;
+    SDL_RenderCopy(renderer, texture, NULL, &dest);
     SDL_RenderPresent(renderer);
+    SDL_DestroyTexture(texture);
 
     SDL_Event event;
     int waiting = 1;
@@ -79,11 +105,11 @@ void display_game_over(SDL_Renderer *renderer, SDL_Texture *end_screen) {
     }
 }
 
-void render_countdown(SDL_Renderer *renderer, SDL_Texture *number_textures[]) {
+void render_countdown(SDL_Renderer *renderer, TTF_Font *font) {
     for (int i = 3; i > 0; i--) {
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
         SDL_RenderClear(renderer);
-        render_text(renderer, i, number_textures, SCREEN_WIDTH / 2 - 10, SCREEN_HEIGHT / 2 - 15);
+        render_text(renderer, font, i, SCREEN_WIDTH / 2 - 10, SCREEN_HEIGHT / 2 - 15);
         SDL_RenderPresent(renderer);
         SDL_Delay(1000);
     }
@@ -95,9 +121,25 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    if (TTF_Init() == -1) {
+        printf("TTF initialization failed: %s\n", TTF_GetError());
+        SDL_Quit();
+        return 1;
+    }
+
+    TTF_Font *font = TTF_OpenFont("C:/Windows/Fonts/arial.ttf", 24); // Ensure the correct path to the font file
+    if (!font) {
+        printf("Font loading failed: %s\n", TTF_GetError());
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
+
     SDL_Window *window = SDL_CreateWindow("Spaceship Game", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
     if (!window) {
         printf("Window creation failed: %s\n", SDL_GetError());
+        TTF_CloseFont(font);
+        TTF_Quit();
         SDL_Quit();
         return 1;
     }
@@ -106,6 +148,8 @@ int main(int argc, char *argv[]) {
     if (!renderer) {
         printf("Renderer creation failed: %s\n", SDL_GetError());
         SDL_DestroyWindow(window);
+        TTF_CloseFont(font);
+        TTF_Quit();
         SDL_Quit();
         return 1;
     }
@@ -113,25 +157,15 @@ int main(int argc, char *argv[]) {
     SDL_Surface *spaceship_surface = SDL_LoadBMP("spaceship (1).bmp");
     SDL_Surface *meteor_surface = SDL_LoadBMP("meteor.bmp");
     SDL_Surface *end_screen_surface = SDL_LoadBMP("endscreen.bmp");
-    SDL_Surface *number_surfaces[10];
-    SDL_Texture *number_textures[10];
     SDL_Texture *spaceship_texture = SDL_CreateTextureFromSurface(renderer, spaceship_surface);
     SDL_Texture *meteor_texture = SDL_CreateTextureFromSurface(renderer, meteor_surface);
     SDL_Texture *end_screen_texture = SDL_CreateTextureFromSurface(renderer, end_screen_surface);
-
-    for (int i = 0; i < 10; i++) {
-        char filename[20];
-        sprintf(filename, "number_%d.bmp", i);
-        number_surfaces[i] = SDL_LoadBMP(filename);
-        number_textures[i] = SDL_CreateTextureFromSurface(renderer, number_surfaces[i]);
-        SDL_FreeSurface(number_surfaces[i]);
-    }
 
     SDL_FreeSurface(spaceship_surface);
     SDL_FreeSurface(meteor_surface);
     SDL_FreeSurface(end_screen_surface);
 
-    render_countdown(renderer, number_textures); // Add countdown before starting the game
+    render_countdown(renderer, font); // Add countdown before starting the game
 
     Star stars[STAR_COUNT];
     srand((unsigned int)time(NULL));
@@ -190,7 +224,7 @@ int main(int argc, char *argv[]) {
                     lives--;
                     reset_meteor(&meteors[i]);
                     if (lives <= 0) {
-                        display_game_over(renderer, end_screen_texture);
+                        display_game_over(renderer, font, score);
                         score = 0;
                         lives = INITIAL_LIFE;
                         i = 0;
@@ -224,8 +258,8 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        render_text(renderer, score, number_textures, 10, 10); // Display score
-        render_text(renderer, lives, number_textures, 300, 10); // Display lives
+        render_text(renderer, font, score, 10, 10); // Display score
+        render_text(renderer, font, lives, SCREEN_WIDTH - 30, 10); // Display lives on the far right corner
 
         SDL_RenderPresent(renderer);
         SDL_Delay(1000 / 60);
@@ -234,9 +268,8 @@ int main(int argc, char *argv[]) {
     SDL_DestroyTexture(spaceship_texture);
     SDL_DestroyTexture(meteor_texture);
     SDL_DestroyTexture(end_screen_texture);
-    for (int i = 0; i < 10; i++) {
-        SDL_DestroyTexture(number_textures[i]);
-    }
+    TTF_CloseFont(font);
+    TTF_Quit();
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
     SDL_Quit();
