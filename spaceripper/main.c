@@ -1,5 +1,6 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_ttf.h>
+#include <SDL2/SDL_image.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -154,16 +155,17 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    SDL_Surface *spaceship_surface = SDL_LoadBMP("spaceship (1).bmp");
-    SDL_Surface *meteor_surface = SDL_LoadBMP("meteor.bmp");
-    SDL_Surface *end_screen_surface = SDL_LoadBMP("endscreen.bmp");
+    SDL_Surface *spaceship_surface = SDL_LoadBMP("spaceship.bmp");
+    // SDL_Surface *meteor_surface = SDL_LoadBMP("meteor.bmp");
+    
+    SDL_Surface *meteor_surface = IMG_Load("meteor(2).png");
     SDL_Texture *spaceship_texture = SDL_CreateTextureFromSurface(renderer, spaceship_surface);
     SDL_Texture *meteor_texture = SDL_CreateTextureFromSurface(renderer, meteor_surface);
-    SDL_Texture *end_screen_texture = SDL_CreateTextureFromSurface(renderer, end_screen_surface);
+    // SDL_Texture *end_screen_texture = SDL_CreateTextureFromSurface(renderer, end_screen_surface);
 
     SDL_FreeSurface(spaceship_surface);
     SDL_FreeSurface(meteor_surface);
-    SDL_FreeSurface(end_screen_surface);
+    // SDL_FreeSurface(end_screen_surface);
 
     render_countdown(renderer, font); // Add countdown before starting the game
 
@@ -267,7 +269,7 @@ int main(int argc, char *argv[]) {
 
     SDL_DestroyTexture(spaceship_texture);
     SDL_DestroyTexture(meteor_texture);
-    SDL_DestroyTexture(end_screen_texture);
+    // SDL_DestroyTexture(end_screen_texture);
     TTF_CloseFont(font);
     TTF_Quit();
     SDL_DestroyRenderer(renderer);
