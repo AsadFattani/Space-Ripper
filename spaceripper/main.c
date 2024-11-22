@@ -17,6 +17,7 @@
 #define MAX_BULLETS 10 // Define maximum number of bullets
 #define MAX_LOADED_BULLETS 10 // Define maximum number of loaded bullets
 #define BULLET_RELOAD_TIME 1000 // Define bullet reload time in milliseconds
+#define MAX_METEOR_SPEED 5.0f //define the maximum meteor speed
 
 void render_start_screen(SDL_Renderer *renderer, TTF_Font *font); // startscreen prototype
 void render_bullets(SDL_Renderer *renderer, SDL_Texture *bullet_texture, int loaded_bullets); //bullet prototype
@@ -30,7 +31,8 @@ typedef struct {
 typedef struct {
     SDL_Rect rect; // Rectangle for meteor
     int active; // Meteor active status
-    float speed; // Meteor speed
+    float speed_x; // Meteor speed
+    float speed_y;
 } Meteor;
 
 typedef struct {
@@ -67,8 +69,17 @@ void reset_meteor(Meteor *meteor, int score) {
     meteor->rect.w = 50 + rand() % 20; // Randomize meteor width
     meteor->rect.h = meteor->rect.w; // Set meteor height equal to width
     meteor->active = 1; // Activate meteor
-    meteor->speed = METEOR_SPEED_START + rand() % 2; // Randomize meteor speed
-    meteor->speed += (score / 50) * METEOR_SPEED_INCREMENT; // Increase speed based on score
+    meteor->speed_y = METEOR_SPEED_START + rand() % 2; // Randomize meteor speed
+    meteor->speed_y += (score / 50) * METEOR_SPEED_INCREMENT; // Increase speed based on score
+    if(score>= 100){
+        meteor->speed_x += ((rand() % 2)*2 -1) * (1 + (rand()%2));
+    }
+    else {
+        meteor->speed_x = 0; // Meteor moves horizontally only after score >= 100
+    }
+    if (fabs(meteor->speed_x)> MAX_METEOR_SPEED){
+        meteor->speed_x = (meteor->speed_x > 0 ? 1 : -1) * MAX_METEOR_SPEED; // Limit meteor speed
+    }
 }
 
 void display_game_over(SDL_Renderer *renderer, TTF_Font *font, int score) {
@@ -460,17 +471,22 @@ int main(int argc, char *argv[]) {
 
             for (int i = 0; i < MAX_METEORS; i++) {
                 if (meteors[i].active) { // If meteor is active
-                    meteors[i].rect.y += (int)meteors[i].speed; // Move meteor down
+                    meteors[i].rect.y += (int)meteors[i].speed_y; // Move meteor down
+                    meteors[i].rect.x += (int)meteors[i].speed_x; // Move meteor horzontally
 
-                    if (score >= 100) { // If score is 100 or more
-                        if ((score / 100) % 2 == 1) { // Switch direction every 100 points
-                            meteors[i].rect.x += (int)meteors[i].speed / 4; // Move meteor diagonally to the right
-                        } else {
-                            meteors[i].rect.x -= (int)meteors[i].speed / 2; // Move meteor more diagonally to the left
-                        }
+                     
+                    if(meteors[i].rect.x < 0){// checking edge
+                        meteors[i].rect.x = 0; // reset x position
+                        meteors[i].speed_x = -meteors[i].speed_x; // change direction
+                        meteors[i].speed_x = fabs(meteors[i].speed_x);
                     }
+                    else if(meteors[i].rect.x > SCREEN_WIDTH - meteors[i].rect.w) {
+                        meteors[i].rect.x = SCREEN_WIDTH - meteors[i].rect.w; // reset edge
+                        meteors[i].speed_x = -fabs(meteors[i].speed_x);
+                    }
+            
 
-                    if (meteors[i].rect.y > SCREEN_HEIGHT || meteors[i].rect.x > SCREEN_WIDTH - 10 || meteors[i].rect.x < 10) { // If meteor is out of screen
+                    if (meteors[i].rect.y > SCREEN_HEIGHT) { // If meteor is out of screen
                         reset_meteor(&meteors[i], score); // Reset meteor
                         // Do not increment score here
                     }
