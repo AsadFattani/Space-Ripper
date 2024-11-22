@@ -18,7 +18,8 @@
 #define MAX_LOADED_BULLETS 10 // Define maximum number of loaded bullets
 #define BULLET_RELOAD_TIME 1000 // Define bullet reload time in milliseconds
 
-void render_start_screen(SDL_Renderer *renderer, TTF_Font *font); // Function prototype
+void render_start_screen(SDL_Renderer *renderer, TTF_Font *font); // startscreen prototype
+void render_bullets(SDL_Renderer *renderer, SDL_Texture *bullet_texture, int loaded_bullets); //bullet prototype
 
 typedef struct {
     SDL_Rect rect; // Rectangle for bullet
@@ -73,63 +74,95 @@ void reset_meteor(Meteor *meteor, int score) {
 void display_game_over(SDL_Renderer *renderer, TTF_Font *font, int score) {
     SDL_Color color = {255, 0, 0, 255}; // Set text color to red
     SDL_Color button_color = {0, 255, 0, 255}; // Green color for button
+    SDL_Color shadow_color = {0, 0, 0, 255}; // Black color for shadow
 
-    SDL_Surface *surface = TTF_RenderText_Solid(font, "GAME OVER", color); // Create surface for "GAME OVER"
-    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface); // Create texture from surface
-    SDL_FreeSurface(surface); // Free surface
+    TTF_Font *large_font = TTF_OpenFont("./PressStart2P.ttf", 36); // Load larger font for "GAME OVER"
+    TTF_Font *small_font = TTF_OpenFont("./PressStart2P.ttf", 24); // Load smaller font for score and button
 
-    SDL_Rect dest = {SCREEN_WIDTH / 2 - 100, SCREEN_HEIGHT / 2 - 50, 200, 50}; // Set destination rectangle
-    
-    SDL_SetRenderDrawColor(renderer, 28, 27, 27, 255); // Set background color to grey
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Set background color to black
     SDL_RenderClear(renderer); // Clear renderer
-    SDL_RenderCopy(renderer, texture, NULL, &dest); // Render "GAME OVER" text
-    SDL_DestroyTexture(texture); // Destroy texture
 
-    char score_text[20]; // Buffer for score text
-    sprintf(score_text, "Score: %d", score); // Convert score to string
-    surface = TTF_RenderText_Solid(font, score_text, color); // Create surface for score
-    texture = SDL_CreateTextureFromSurface(renderer, surface); // Create texture from surface
-    SDL_FreeSurface(surface); // Free surface
+    // Render "GAME OVER" text with shadow
+    SDL_Surface *surface = TTF_RenderText_Solid(large_font, "GAME OVER", shadow_color);
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect dest = {SCREEN_WIDTH / 2 - surface->w / 2 + 2, SCREEN_HEIGHT / 2 - 50 + 2, surface->w, surface->h};
+    SDL_FreeSurface(surface);
+    SDL_RenderCopy(renderer, texture, NULL, &dest);
+    SDL_DestroyTexture(texture);
 
-    dest.y += 60; // Position below "GAME OVER"
-    dest.w = 100; // Set width
-    dest.h = 25; // Set height
-    SDL_RenderCopy(renderer, texture, NULL, &dest); // Render score text
-    SDL_DestroyTexture(texture); // Destroy texture
+    surface = TTF_RenderText_Solid(large_font, "GAME OVER", color);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    dest.x -= 2;
+    dest.y -= 2;
+    SDL_FreeSurface(surface);
+    SDL_RenderCopy(renderer, texture, NULL, &dest);
+    SDL_DestroyTexture(texture);
 
-    surface = TTF_RenderText_Solid(font, "HOME", button_color); // Create surface for "HOME" button
-    texture = SDL_CreateTextureFromSurface(renderer, surface); // Create texture from surface
-    SDL_FreeSurface(surface); // Free surface
+    // Render score text with shadow
+    char score_text[20];
+    sprintf(score_text, "Score: %d", score);
+    surface = TTF_RenderText_Solid(small_font, score_text, shadow_color);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    int surface_w = surface->w;
+    int surface_h = surface->h;
+    dest = (SDL_Rect){SCREEN_WIDTH / 2 - surface_w / 2 + 2, SCREEN_HEIGHT / 2 + 20 + 2, surface_w, surface_h};
+    SDL_FreeSurface(surface);
+    SDL_RenderCopy(renderer, texture, NULL, &dest);
+    SDL_DestroyTexture(texture);
 
-    SDL_Rect button_rect = {SCREEN_WIDTH / 2 - 50, SCREEN_HEIGHT / 2 + 100, 100, 50}; // Set button rectangle
-    SDL_RenderCopy(renderer, texture, NULL, &button_rect); // Render "HOME" button
-    SDL_RenderPresent(renderer); // Present renderer
-    SDL_DestroyTexture(texture); // Destroy texture
+    surface = TTF_RenderText_Solid(small_font, score_text, color);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    dest.x -= 2;
+    dest.y -= 2;
+    SDL_FreeSurface(surface);
+    SDL_RenderCopy(renderer, texture, NULL, &dest);
+    SDL_DestroyTexture(texture);
 
-    SDL_Event event; // Event variable
-    int waiting = 1; // Waiting flag
+    // Render "HOME" button with shadow
+    surface = TTF_RenderText_Solid(small_font, "HOME", shadow_color);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect button_rect = {SCREEN_WIDTH / 2 - surface->w / 2 + 2, SCREEN_HEIGHT / 2 + 100 + 2, surface->w, surface->h};
+    SDL_FreeSurface(surface);
+    SDL_RenderCopy(renderer, texture, NULL, &button_rect);
+    SDL_DestroyTexture(texture);
+
+    surface = TTF_RenderText_Solid(small_font, "HOME", button_color);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    button_rect.x -= 2;
+    button_rect.y -= 2;
+    SDL_FreeSurface(surface);
+    SDL_RenderCopy(renderer, texture, NULL, &button_rect);
+    SDL_DestroyTexture(texture);
+
+    SDL_RenderPresent(renderer);
+
+    TTF_CloseFont(large_font);
+    TTF_CloseFont(small_font);
+
+    SDL_Event event;
+    int waiting = 1;
     while (waiting) {
         while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_QUIT) { // Quit event
-                SDL_Quit(); // Quit SDL
-                exit(0); // Exit program
-            } else if (event.type == SDL_KEYDOWN) { // Key down event
-                if (event.key.keysym.sym == SDLK_RETURN) { // Enter key
-                    waiting = 0; // Stop waiting
-                } else if (event.key.keysym.sym == SDLK_ESCAPE) { // Escape key
-                    SDL_Quit(); // Quit SDL
-                    exit(0); // Exit program
+            if (event.type == SDL_QUIT) {
+                SDL_Quit();
+                exit(0);
+            } else if (event.type == SDL_KEYDOWN) {
+                if (event.key.keysym.sym == SDLK_RETURN) {
+                    waiting = 0;
+                } else if (event.key.keysym.sym == SDLK_ESCAPE) {
+                    SDL_Quit();
+                    exit(0);
                 }
-            } else if (event.type == SDL_MOUSEBUTTONDOWN) { // Mouse button down event
+            } else if (event.type == SDL_MOUSEBUTTONDOWN) {
                 int x, y;
                 SDL_GetMouseState(&x, &y);
                 if (x >= button_rect.x && x <= button_rect.x + button_rect.w && y >= button_rect.y && y <= button_rect.y + button_rect.h) {
-                    render_start_screen(renderer, font); // Render start screen
-                    waiting = 0; // Stop waiting
+                    render_start_screen(renderer, font);
+                    waiting = 0;
                 }
             }
         }
-        SDL_Delay(100); // Delay for 100 ms
+        SDL_Delay(100);
     }
 }
 
@@ -169,8 +202,8 @@ void render_bullets(SDL_Renderer *renderer, SDL_Texture *bullet_texture, int loa
 
 void render_start_screen(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_Color button_color = {0, 255, 0, 255}; // Green color for button
-    SDL_Color title_color = {255, 255, 255, 255}; // White color for title
-    SDL_Color subtitle_color = {255, 255, 255, 255}; // White color for subtitle
+    SDL_Color title_color = {255, 0, 0, 255}; // red color for title
+    SDL_Color subtitle_color = {150, 0, 0, 255}; // dark red color for subtitle
 
     SDL_Surface *title_surface = TTF_RenderText_Solid(font, "SPACE RIPPER", title_color);
     SDL_Texture *title_texture = SDL_CreateTextureFromSurface(renderer, title_surface);
@@ -178,11 +211,12 @@ void render_start_screen(SDL_Renderer *renderer, TTF_Font *font) {
 
     SDL_Rect title_rect = {SCREEN_WIDTH / 2 - title_surface->w / 2, SCREEN_HEIGHT / 4, title_surface->w, title_surface->h};
 
-    SDL_Surface *subtitle_surface = TTF_RenderText_Solid(font, "FEEL THE FURY OF SPACE", subtitle_color);
+    TTF_Font *subtitle_font = TTF_OpenFont("./PressStart2P.ttf", 14); // Load smaller font for subtitle
+    SDL_Surface *subtitle_surface = TTF_RenderText_Solid(subtitle_font, "FEEL THE FURY OF SPACE", subtitle_color);
     SDL_Texture *subtitle_texture = SDL_CreateTextureFromSurface(renderer, subtitle_surface);
     SDL_FreeSurface(subtitle_surface);
 
-    SDL_Rect subtitle_rect = {SCREEN_WIDTH / 2 - subtitle_surface->w / 2, SCREEN_HEIGHT / 4 + 50, subtitle_surface->w, subtitle_surface->h};
+    SDL_Rect subtitle_rect = {SCREEN_WIDTH / 2 - subtitle_surface->w / 2, SCREEN_HEIGHT / 4 + 40, subtitle_surface->w, subtitle_surface->h};
 
     SDL_Surface *button_surface = TTF_RenderText_Solid(font, "START", button_color);
     SDL_Texture *button_texture = SDL_CreateTextureFromSurface(renderer, button_surface);
@@ -202,6 +236,7 @@ void render_start_screen(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_DestroyTexture(title_texture);
     SDL_DestroyTexture(subtitle_texture);
     SDL_DestroyTexture(button_texture);
+    TTF_CloseFont(subtitle_font); // Close subtitle font
 
     int waiting = 1;
     SDL_Event event;
@@ -222,6 +257,26 @@ void render_start_screen(SDL_Renderer *renderer, TTF_Font *font) {
     }
 }
 
+void render_hearts(SDL_Renderer *renderer, SDL_Texture *red_heart_texture, SDL_Texture *white_heart_texture, int lives) {
+    for (int i = 0; i < INITIAL_LIFE; i++) {
+        SDL_Texture *texture = i < lives ? red_heart_texture : white_heart_texture;
+        SDL_Rect heart_rect = {SCREEN_WIDTH - 30 - i * 30, 10, 20, 20}; // Position hearts in the top right corner
+        SDL_RenderCopy(renderer, texture, NULL, &heart_rect);
+    }
+}
+
+void render_bullet(SDL_Renderer *renderer, SDL_Texture *bullet_texture, SDL_Rect *bullet_rect) {
+    SDL_RenderCopy(renderer, bullet_texture, NULL, bullet_rect); // Render bullet using bullet texture
+}
+
+void render_active_bullets(SDL_Renderer *renderer, SDL_Texture *active_bullet_texture, Bullet bullets[], int bullet_count) {
+    for (int i = 0; i < bullet_count; i++) {
+        if (bullets[i].active) { // If bullet is active
+            render_bullet(renderer, active_bullet_texture, &bullets[i].rect); // Render bullet using active bullet texture
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
     if (SDL_Init(SDL_INIT_VIDEO) < 0) { // Initialize SDL
         printf("SDL initialization failed: %s\n", SDL_GetError()); // Print error message
@@ -234,7 +289,7 @@ int main(int argc, char *argv[]) {
         return 1; // Return error code
     }
 
-    TTF_Font *font = TTF_OpenFont("C:/Windows/Fonts/arial.ttf", 24); // Load font
+    TTF_Font *font = TTF_OpenFont("./PressStart2P.ttf", 20); // Load font
     if (!font) { // Check if font loaded
         printf("Font loading failed: %s\n", TTF_GetError()); // Print error message
         TTF_Quit(); // Quit SDL_ttf
@@ -280,9 +335,44 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    SDL_Texture *bullet_texture = load_texture(renderer, "bullet.png"); // Load bullet texture
+    SDL_Texture *bullet_texture = load_texture(renderer, "bullet.png"); // Load bullet texture for bullets on the right
     if (!bullet_texture) {
         // Handle error if bullet texture fails to load
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        TTF_CloseFont(font);
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
+
+    SDL_Texture *active_bullet_texture = load_texture(renderer, "bullet2.png"); // Load bullet texture for active bullets
+    if (!active_bullet_texture) {
+        // Handle error if active bullet texture fails to load
+        SDL_DestroyTexture(bullet_texture);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        TTF_CloseFont(font);
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
+
+    SDL_Texture *red_heart_texture = load_texture(renderer, "red-heart.png"); // Load red heart texture
+    if (!red_heart_texture) {
+        // Handle error if red heart texture fails to load
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        TTF_CloseFont(font);
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
+
+    SDL_Texture *white_heart_texture = load_texture(renderer, "white-heart.png"); // Load white heart texture
+    if (!white_heart_texture) {
+        // Handle error if white heart texture fails to load
+        SDL_DestroyTexture(red_heart_texture);
         SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         TTF_CloseFont(font);
@@ -337,6 +427,8 @@ int main(int argc, char *argv[]) {
                             break; // Break after firing one bullet
                         }
                     }
+                } else if (event.key.keysym.sym == SDLK_ESCAPE) { // ESC key event
+                    paused = !paused; // Toggle pause state
                 }
             } else if (event.type == SDL_MOUSEBUTTONDOWN) {
                 int x, y;
@@ -420,12 +512,7 @@ int main(int argc, char *argv[]) {
         }
 
         SDL_RenderCopy(renderer, spaceship_texture, NULL, &spaceship); // Render spaceship
-        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255); // Set bullet color to red
-        for (int i = 0; i < MAX_BULLETS; i++) {
-            if (bullets[i].active) { // If bullet is active
-                SDL_RenderFillRect(renderer, &bullets[i].rect); // Render bullet
-            }
-        }
+        render_active_bullets(renderer, active_bullet_texture, bullets, MAX_BULLETS); // Render active bullets
 
         for (int i = 0; i < MAX_METEORS; i++) {
             if (meteors[i].active) { // If meteor is active
@@ -434,7 +521,7 @@ int main(int argc, char *argv[]) {
         }
 
         render_text(renderer, font, score, 10, 10); // Display score
-        render_text(renderer, font, lives, SCREEN_WIDTH - 30, 10); // Display lives on the far right corner
+        render_hearts(renderer, red_heart_texture, white_heart_texture, lives); // Render hearts
         render_pause_icon(renderer, pause_texture); // Render pause icon
         render_bullets(renderer, bullet_texture, loaded_bullets); // Render bullets in bottom right corner
 
@@ -442,6 +529,9 @@ int main(int argc, char *argv[]) {
         SDL_Delay(1000 / 60); // Delay for 60 FPS
     }
 
+    SDL_DestroyTexture(active_bullet_texture); // Destroy active bullet texture
+    SDL_DestroyTexture(white_heart_texture); // Destroy white heart texture
+    SDL_DestroyTexture(red_heart_texture); // Destroy red heart texture
     SDL_DestroyTexture(bullet_texture); // Destroy bullet texture
     SDL_DestroyTexture(pause_texture); // Destroy pause icon texture
     SDL_DestroyTexture(spaceship_texture); // Destroy spaceship texture
