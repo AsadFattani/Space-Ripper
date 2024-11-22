@@ -327,15 +327,15 @@ int main(int argc, char *argv[]) {
         return 1; // Return error code
     }
 
-    SDL_Surface *spaceship_surface = SDL_LoadBMP("spaceship.bmp"); // Load spaceship image
-    SDL_Surface *meteor_surface = IMG_Load("meteor(2).png"); // Load meteor image
+    SDL_Surface *spaceship_surface = SDL_LoadBMP("images/spaceship.bmp"); // Load spaceship image
+    SDL_Surface *meteor_surface = IMG_Load("images/meteor(2).png"); // Load meteor image
     SDL_Texture *spaceship_texture = SDL_CreateTextureFromSurface(renderer, spaceship_surface); // Create spaceship texture
     SDL_Texture *meteor_texture = SDL_CreateTextureFromSurface(renderer, meteor_surface); // Create meteor texture
 
     SDL_FreeSurface(spaceship_surface); // Free spaceship surface
     SDL_FreeSurface(meteor_surface); // Free meteor surface
 
-    SDL_Texture *pause_texture = load_texture(renderer, "pause-icon.png"); // Load pause icon texture
+    SDL_Texture *pause_texture = load_texture(renderer, "images/pause-icon.png"); // Load pause icon texture
     if (!pause_texture) {
         // Handle error if pause icon texture fails to load
         SDL_DestroyRenderer(renderer);
@@ -346,7 +346,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    SDL_Texture *bullet_texture = load_texture(renderer, "bullet.png"); // Load bullet texture for bullets on the right
+    SDL_Texture *bullet_texture = load_texture(renderer, "images/bullet.png"); // Load bullet texture for bullets on the right
     if (!bullet_texture) {
         // Handle error if bullet texture fails to load
         SDL_DestroyRenderer(renderer);
@@ -357,7 +357,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    SDL_Texture *active_bullet_texture = load_texture(renderer, "bullet2.png"); // Load bullet texture for active bullets
+    SDL_Texture *active_bullet_texture = load_texture(renderer, "images/bullet2.png"); // Load bullet texture for active bullets
     if (!active_bullet_texture) {
         // Handle error if active bullet texture fails to load
         SDL_DestroyTexture(bullet_texture);
@@ -369,7 +369,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    SDL_Texture *red_heart_texture = load_texture(renderer, "red-heart.png"); // Load red heart texture
+    SDL_Texture *red_heart_texture = load_texture(renderer, "images/red-heart.png"); // Load red heart texture
     if (!red_heart_texture) {
         // Handle error if red heart texture fails to load
         SDL_DestroyRenderer(renderer);
@@ -380,7 +380,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    SDL_Texture *white_heart_texture = load_texture(renderer, "white-heart.png"); // Load white heart texture
+    SDL_Texture *white_heart_texture = load_texture(renderer, "images/white-heart.png"); // Load white heart texture
     if (!white_heart_texture) {
         // Handle error if white heart texture fails to load
         SDL_DestroyTexture(red_heart_texture);
