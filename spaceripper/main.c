@@ -66,7 +66,7 @@ void reset_meteor(Meteor *meteor, int score) {
         meteor->rect.x = SCREEN_WIDTH - meteor->rect.w;
     }
     meteor->rect.y = -rand() % SCREEN_HEIGHT; // Randomize meteor y position
-    meteor->rect.w = 50 + rand() % 20; // Randomize meteor width
+    meteor->rect.w = 70 + rand() % 20; // Increase meteor width
     meteor->rect.h = meteor->rect.w; // Set meteor height equal to width
     meteor->active = 1; // Activate meteor
     meteor->speed_y = METEOR_SPEED_START + rand() % 2; // Randomize meteor speed
@@ -276,15 +276,92 @@ void render_hearts(SDL_Renderer *renderer, SDL_Texture *red_heart_texture, SDL_T
     }
 }
 
-void render_bullet(SDL_Renderer *renderer, SDL_Texture *bullet_texture, SDL_Rect *bullet_rect) {
-    SDL_RenderCopy(renderer, bullet_texture, NULL, bullet_rect); // Render bullet using bullet texture
+void render_bullet(SDL_Renderer *renderer, SDL_Texture *bullet_textures[], SDL_Rect *bullet_rect, int frame) {
+    SDL_RenderCopy(renderer, bullet_textures[frame], NULL, bullet_rect); // Render bullet animation frame
 }
 
-void render_active_bullets(SDL_Renderer *renderer, SDL_Texture *active_bullet_texture, Bullet bullets[], int bullet_count) {
+void render_active_bullets(SDL_Renderer *renderer, SDL_Texture *bullet_textures[], Bullet bullets[], int bullet_count, int frame) {
     for (int i = 0; i < bullet_count; i++) {
         if (bullets[i].active) { // If bullet is active
-            render_bullet(renderer, active_bullet_texture, &bullets[i].rect); // Render bullet using active bullet texture
+            render_bullet(renderer, bullet_textures, &bullets[i].rect, frame); // Render bullet using bullet textures
         }
+    }
+}
+
+void render_meteor(SDL_Renderer *renderer, SDL_Texture *meteor_textures[], Meteor *meteor, int frame) {
+    SDL_RenderCopy(renderer, meteor_textures[frame], NULL, &meteor->rect); // Render meteor animation frame
+}
+
+void render_pause_screen(SDL_Renderer *renderer, TTF_Font *font, int *paused) {
+    SDL_Color color = {255, 255, 255, 255}; // Set text color to white
+    SDL_Color button_color = {0, 255, 0, 255}; // Green color for button
+    SDL_Color shadow_color = {0, 0, 0, 255}; // Black color for shadow
+
+    TTF_Font *large_font = TTF_OpenFont("./PressStart2P.ttf", 36); // Load larger font for "PAUSED"
+    TTF_Font *small_font = TTF_OpenFont("./PressStart2P.ttf", 24); // Load smaller font for button
+
+    SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Set background color to black
+    SDL_RenderClear(renderer); // Clear renderer
+
+    // Render "PAUSED" text with shadow
+    SDL_Surface *surface = TTF_RenderText_Solid(large_font, "PAUSED", shadow_color);
+    SDL_Texture *texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect dest = {SCREEN_WIDTH / 2 - surface->w / 2 + 2, SCREEN_HEIGHT / 2 - 50 + 2, surface->w, surface->h};
+    SDL_FreeSurface(surface);
+    SDL_RenderCopy(renderer, texture, NULL, &dest);
+    SDL_DestroyTexture(texture);
+
+    surface = TTF_RenderText_Solid(large_font, "PAUSED", color);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    dest.x -= 2;
+    dest.y -= 2;
+    SDL_FreeSurface(surface);
+    SDL_RenderCopy(renderer, texture, NULL, &dest);
+    SDL_DestroyTexture(texture);
+
+    // Render "RESUME" button with shadow
+    surface = TTF_RenderText_Solid(small_font, "RESUME", shadow_color);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_Rect button_rect = {SCREEN_WIDTH / 2 - surface->w / 2 + 2, SCREEN_HEIGHT / 2 + 50 + 2, surface->w, surface->h};
+    SDL_FreeSurface(surface);
+    SDL_RenderCopy(renderer, texture, NULL, &button_rect);
+    SDL_DestroyTexture(texture);
+
+    surface = TTF_RenderText_Solid(small_font, "RESUME", button_color);
+    texture = SDL_CreateTextureFromSurface(renderer, surface);
+    button_rect.x -= 2;
+    button_rect.y -= 2;
+    SDL_FreeSurface(surface);
+    SDL_RenderCopy(renderer, texture, NULL, &button_rect);
+    SDL_DestroyTexture(texture);
+
+    SDL_RenderPresent(renderer);
+
+    TTF_CloseFont(large_font);
+    TTF_CloseFont(small_font);
+
+    SDL_Event event;
+    int waiting = 1;
+    while (waiting) {
+        while (SDL_PollEvent(&event)) {
+            if (event.type == SDL_QUIT) {
+                SDL_Quit();
+                exit(0);
+            } else if (event.type == SDL_KEYDOWN) {
+                if (event.key.keysym.sym == SDLK_ESCAPE) {
+                    *paused = 0;
+                    waiting = 0;
+                }
+            } else if (event.type == SDL_MOUSEBUTTONDOWN) {
+                int x, y;
+                SDL_GetMouseState(&x, &y);
+                if (x >= button_rect.x && x <= button_rect.x + button_rect.w && y >= button_rect.y && y <= button_rect.y + button_rect.h) {
+                    *paused = 0;
+                    waiting = 0;
+                }
+            }
+        }
+        SDL_Delay(100);
     }
 }
 
@@ -328,12 +405,63 @@ int main(int argc, char *argv[]) {
     }
 
     SDL_Surface *spaceship_surface = SDL_LoadBMP("images/spaceship.bmp"); // Load spaceship image
-    SDL_Surface *meteor_surface = IMG_Load("images/meteor(2).png"); // Load meteor image
+    IMG_Animation *meteor_animation = IMG_LoadAnimation("images/flame-meteor.gif"); // Load meteor animation
+    if (!meteor_animation) {
+        printf("Meteor animation loading failed: %s\n", IMG_GetError()); // Print error message
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        TTF_CloseFont(font);
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
+    SDL_Texture *meteor_textures[meteor_animation->count];
+    for (int i = 0; i < meteor_animation->count; i++) {
+        meteor_textures[i] = SDL_CreateTextureFromSurface(renderer, meteor_animation->frames[i]);
+        if (!meteor_textures[i]) {
+            printf("Meteor texture creation failed: %s\n", SDL_GetError()); // Print error message
+            for (int j = 0; j < i; j++) {
+                SDL_DestroyTexture(meteor_textures[j]);
+            }
+            IMG_FreeAnimation(meteor_animation);
+            SDL_DestroyRenderer(renderer);
+            SDL_DestroyWindow(window);
+            TTF_CloseFont(font);
+            TTF_Quit();
+            SDL_Quit();
+            return 1;
+        }
+    }
+    IMG_Animation *bullet_animation = IMG_LoadAnimation("images/bullet.gif"); // Load bullet animation
+    if (!bullet_animation) {
+        printf("Bullet animation loading failed: %s\n", IMG_GetError()); // Print error message
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        TTF_CloseFont(font);
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
+    SDL_Texture *bullet_textures[bullet_animation->count];
+    for (int i = 0; i < bullet_animation->count; i++) {
+        bullet_textures[i] = SDL_CreateTextureFromSurface(renderer, bullet_animation->frames[i]);
+        if (!bullet_textures[i]) {
+            printf("Bullet texture creation failed: %s\n", SDL_GetError()); // Print error message
+            for (int j = 0; j < i; j++) {
+                SDL_DestroyTexture(bullet_textures[j]);
+            }
+            IMG_FreeAnimation(bullet_animation);
+            SDL_DestroyRenderer(renderer);
+            SDL_DestroyWindow(window);
+            TTF_CloseFont(font);
+            TTF_Quit();
+            SDL_Quit();
+            return 1;
+        }
+    }
     SDL_Texture *spaceship_texture = SDL_CreateTextureFromSurface(renderer, spaceship_surface); // Create spaceship texture
-    SDL_Texture *meteor_texture = SDL_CreateTextureFromSurface(renderer, meteor_surface); // Create meteor texture
 
     SDL_FreeSurface(spaceship_surface); // Free spaceship surface
-    SDL_FreeSurface(meteor_surface); // Free meteor surface
 
     SDL_Texture *pause_texture = load_texture(renderer, "images/pause-icon.png"); // Load pause icon texture
     if (!pause_texture) {
@@ -418,6 +546,10 @@ int main(int argc, char *argv[]) {
     int loaded_bullets = MAX_LOADED_BULLETS; // Initialize loaded bullets
     Uint32 last_bullet_time = 0; // Initialize last bullet fire time
     Uint32 last_reload_time = SDL_GetTicks(); // Initialize last reload time
+    int meteor_frame = 0; // Initialize meteor animation frame
+    Uint32 last_frame_time = SDL_GetTicks(); // Initialize last frame time
+    int bullet_frame = 0; // Initialize bullet animation frame
+    Uint32 last_bullet_frame_time = SDL_GetTicks(); // Initialize last bullet frame time
 
     while (running) {
         SDL_Event event; // Event variable
@@ -430,8 +562,8 @@ int main(int argc, char *argv[]) {
                         if (!bullets[i].active) { // If bullet is not active
                             bullets[i].rect.x = spaceship.x + spaceship.w / 2 - bullets[i].rect.w / 2; // Set bullet x position
                             bullets[i].rect.y = spaceship.y; // Set bullet y position
-                            bullets[i].rect.w = 10; // Set bullet width
-                            bullets[i].rect.h = 10; // Set bullet height
+                            bullets[i].rect.w = 20; // Increase bullet width
+                            bullets[i].rect.h = 20; // Increase bullet height
                             bullets[i].active = 1; // Activate bullet
                             loaded_bullets--; // Decrease loaded bullets
                             last_bullet_time = SDL_GetTicks(); // Update last bullet fire time
@@ -440,6 +572,12 @@ int main(int argc, char *argv[]) {
                     }
                 } else if (event.key.keysym.sym == SDLK_ESCAPE) { // ESC key event
                     paused = !paused; // Toggle pause state
+                    if (paused) {
+                        render_pause_screen(renderer, font, &paused); // Render pause screen
+                        if (!paused) {
+                            render_countdown(renderer, font); // Render countdown after unpause
+                        }
+                    }
                 }
             } else if (event.type == SDL_MOUSEBUTTONDOWN) {
                 int x, y;
@@ -447,11 +585,27 @@ int main(int argc, char *argv[]) {
                 SDL_Rect pause_rect = {SCREEN_WIDTH / 2 - 15, 10, 30, 30}; // Pause icon rectangle
                 if (x >= pause_rect.x && x <= pause_rect.x + pause_rect.w && y >= pause_rect.y && y <= pause_rect.y + pause_rect.h) {
                     paused = !paused; // Toggle pause state
+                    if (paused) {
+                        render_pause_screen(renderer, font, &paused); // Render pause screen
+                        if (!paused) {
+                            render_countdown(renderer, font); // Render countdown after unpause
+                        }
+                    }
                 }
             }
         }
 
         if (!paused) {
+            // Update bullet animation frame
+            if (SDL_GetTicks() - last_bullet_frame_time > 100) { // Change frame every 100ms
+                bullet_frame = (bullet_frame + 1) % bullet_animation->count; // Loop through frames
+                last_bullet_frame_time = SDL_GetTicks(); // Update last frame time
+            }
+            // Update meteor animation frame
+            if (SDL_GetTicks() - last_frame_time > 100) { // Change frame every 100ms
+                meteor_frame = (meteor_frame + 1) % meteor_animation->count; // Loop through frames
+                last_frame_time = SDL_GetTicks(); // Update last frame time
+            }
             const Uint8 *keystates = SDL_GetKeyboardState(NULL); // Get keyboard state
             if (keystates[SDL_SCANCODE_LEFT] && spaceship.x > 0) { // Left key event
                 spaceship.x -= SHIP_SPEED; // Move spaceship left
@@ -472,7 +626,7 @@ int main(int argc, char *argv[]) {
             for (int i = 0; i < MAX_METEORS; i++) {
                 if (meteors[i].active) { // If meteor is active
                     meteors[i].rect.y += (int)meteors[i].speed_y; // Move meteor down
-                    meteors[i].rect.x += (int)meteors[i].speed_x; // Move meteor horzontally
+                    meteors[i].rect.x += (int)meteors[i].speed_x; // Move meteor horizontally
 
                      
                     if(meteors[i].rect.x < 0){// checking edge
@@ -528,11 +682,11 @@ int main(int argc, char *argv[]) {
         }
 
         SDL_RenderCopy(renderer, spaceship_texture, NULL, &spaceship); // Render spaceship
-        render_active_bullets(renderer, active_bullet_texture, bullets, MAX_BULLETS); // Render active bullets
+        render_active_bullets(renderer, bullet_textures, bullets, MAX_BULLETS, bullet_frame); // Render active bullets
 
         for (int i = 0; i < MAX_METEORS; i++) {
             if (meteors[i].active) { // If meteor is active
-                SDL_RenderCopy(renderer, meteor_texture, NULL, &meteors[i].rect); // Render meteor
+                render_meteor(renderer, meteor_textures, &meteors[i], meteor_frame); // Render meteor animation frame
             }
         }
 
@@ -541,17 +695,30 @@ int main(int argc, char *argv[]) {
         render_pause_icon(renderer, pause_texture); // Render pause icon
         render_bullets(renderer, bullet_texture, loaded_bullets); // Render bullets in bottom right corner
 
+        for (int i = 0; i < MAX_BULLETS; i++) {
+            if (bullets[i].active) { // If bullet is active
+                render_bullet(renderer, bullet_textures, &bullets[i].rect, bullet_frame); // Render bullet animation frame
+            }
+        }
+
         SDL_RenderPresent(renderer); // Present renderer
         SDL_Delay(1000 / 60); // Delay for 60 FPS
     }
 
+    for (int i = 0; i < bullet_animation->count; i++) {
+        SDL_DestroyTexture(bullet_textures[i]);
+    }
+    IMG_FreeAnimation(bullet_animation); // Free bullet animation
+    for (int i = 0; i < meteor_animation->count; i++) {
+        SDL_DestroyTexture(meteor_textures[i]);
+    }
+    IMG_FreeAnimation(meteor_animation); // Free meteor animation
     SDL_DestroyTexture(active_bullet_texture); // Destroy active bullet texture
     SDL_DestroyTexture(white_heart_texture); // Destroy white heart texture
     SDL_DestroyTexture(red_heart_texture); // Destroy red heart texture
     SDL_DestroyTexture(bullet_texture); // Destroy bullet texture
     SDL_DestroyTexture(pause_texture); // Destroy pause icon texture
     SDL_DestroyTexture(spaceship_texture); // Destroy spaceship texture
-    SDL_DestroyTexture(meteor_texture); // Destroy meteor texture
     TTF_CloseFont(font); // Close font
     TTF_Quit(); // Quit SDL_ttf
     SDL_DestroyRenderer(renderer); // Destroy renderer
