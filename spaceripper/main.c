@@ -16,11 +16,12 @@
 #define MAX_METEORS 6 // Define maximum number of meteors
 #define MAX_BULLETS 10 // Define maximum number of bullets
 #define MAX_LOADED_BULLETS 10 // Define maximum number of loaded bullets
-#define BULLET_RELOAD_TIME 1000 // Define bullet reload time in milliseconds
+#define BULLET_RELOAD_TIME 750 // Define bullet reload time in milliseconds
 #define MAX_METEOR_SPEED 5.0f //define the maximum meteor speed
 
 void render_start_screen(SDL_Renderer *renderer, TTF_Font *font); // startscreen prototype
 void render_bullets(SDL_Renderer *renderer, SDL_Texture *bullet_texture, int loaded_bullets); //bullet prototype
+void render_countdown(SDL_Renderer *renderer, TTF_Font *font); // Add prototype for render_countdown
 
 typedef struct {
     SDL_Rect rect; // Rectangle for bullet
@@ -169,6 +170,7 @@ void display_game_over(SDL_Renderer *renderer, TTF_Font *font, int score) {
                 SDL_GetMouseState(&x, &y);
                 if (x >= button_rect.x && x <= button_rect.x + button_rect.w && y >= button_rect.y && y <= button_rect.y + button_rect.h) {
                     render_start_screen(renderer, font);
+                    render_countdown(renderer, font); // Add countdown before starting the game
                     waiting = 0;
                 }
             }
@@ -529,17 +531,27 @@ int main(int argc, char *argv[]) {
     generate_stars(stars, STAR_COUNT); // Generate stars
 
     SDL_Rect spaceship = {SCREEN_WIDTH / 2 - 25, SCREEN_HEIGHT - 70, 50, 50}; // Move spaceship just above the bullets
+    SDL_Rect spaceship_collision = {spaceship.x + spaceship.w / 4, spaceship.y + spaceship.h / 4, spaceship.w / 2, spaceship.h / 2}; // Centered reduced collision box
     Bullet bullets[MAX_BULLETS]; // Array of bullets
     for (int i = 0; i < MAX_BULLETS; i++) {
         bullets[i].active = 0; // Deactivate bullet
+        bullets[i].rect.w = 20; // Initialize bullet width
+        bullets[i].rect.h = 20; // Initialize bullet height
     }
     Meteor meteors[MAX_METEORS]; // Array of meteors
     for (int i = 0; i < MAX_METEORS; i++) {
         meteors[i].active = 0; // Deactivate meteor
         reset_meteor(&meteors[i], 0); // Reset meteor
     }
+    SDL_Rect meteor_collision[MAX_METEORS]; // Array of meteor collision boxes
+    for (int i = 0; i < MAX_METEORS; i++) {
+        meteors[i].active = 0; // Deactivate meteor
+        reset_meteor(&meteors[i], 0); // Reset meteor
+        meteor_collision[i].w = meteors[i].rect.w * 0.2; // Reduce collision width
+        meteor_collision[i].h = meteors[i].rect.h * 0.6; // Reduce collision height
+    }
 
-    int running = 1; // Game running flag
+    int running = 1; // Declare running variable
     int paused = 0; // Game paused flag
     int score = 0; // Initialize score
     int lives = INITIAL_LIFE; // Initialize lives
@@ -614,6 +626,9 @@ int main(int argc, char *argv[]) {
                 spaceship.x += SHIP_SPEED; // Move spaceship right
             }
 
+            spaceship_collision.x = spaceship.x + spaceship.w / 4; // Update collision box position
+            spaceship_collision.y = spaceship.y + spaceship.h / 4;
+
             for (int i = 0; i < MAX_BULLETS; i++) {
                 if (bullets[i].active) { // If bullet is active
                     bullets[i].rect.y -= BULLET_SPEED; // Move bullet up
@@ -639,13 +654,15 @@ int main(int argc, char *argv[]) {
                         meteors[i].speed_x = -fabs(meteors[i].speed_x);
                     }
             
+                    meteor_collision[i].x = meteors[i].rect.x + (meteors[i].rect.w - meteor_collision[i].w) / 2; // Center collision box horizontally
+                    meteor_collision[i].y = meteors[i].rect.y + (meteors[i].rect.h - meteor_collision[i].h) / 2; // Center collision box vertically;
 
                     if (meteors[i].rect.y > SCREEN_HEIGHT) { // If meteor is out of screen
                         reset_meteor(&meteors[i], score); // Reset meteor
                         // Do not increment score here
                     }
 
-                    if (SDL_HasIntersection(&spaceship, &meteors[i].rect)) { // If spaceship collides with meteor
+                    if (SDL_HasIntersection(&spaceship_collision, &meteor_collision[i])) { // If spaceship collides with meteor
                         lives--; // Decrement lives
                         reset_meteor(&meteors[i], score); // Reset meteor
                         if (lives <= 0) { // If no lives left
@@ -657,7 +674,7 @@ int main(int argc, char *argv[]) {
                     }
 
                     for (int j = 0; j < MAX_BULLETS; j++) {
-                        if (bullets[j].active && SDL_HasIntersection(&bullets[j].rect, &meteors[i].rect)) { // If bullet collides with meteor
+                        if (bullets[j].active && SDL_HasIntersection(&bullets[j].rect, &meteor_collision[i])) { // If bullet collides with meteor
                             reset_meteor(&meteors[i], score); // Reset meteor
                             bullets[j].active = 0; // Deactivate bullet
                             score++; // Increment score
@@ -686,7 +703,7 @@ int main(int argc, char *argv[]) {
 
         for (int i = 0; i < MAX_METEORS; i++) {
             if (meteors[i].active) { // If meteor is active
-                render_meteor(renderer, meteor_textures, &meteors[i], meteor_frame); // Render meteor animation frame
+                render_meteor(renderer, meteor_textures, &meteors[i], meteor_frame); // Render meteor without collision box
             }
         }
 
