@@ -40,6 +40,31 @@ typedef struct {
     int x, y; // Coordinates for star
 } Star;
 
+void store_score(int score){
+    FILE *ptr;
+    int high_score = 0;
+    ptr = fopen("HighScore.txt", "r+");
+    if (ptr == NULL) {
+        ptr = fopen("HighScore.txt", "w+");
+    } else {
+        fscanf(ptr, "%d", &high_score);
+    }
+    if (score > high_score) {
+        rewind(ptr);
+        fprintf(ptr, "%d\n", score);
+    }
+    fclose(ptr);
+}
+
+int read_score(){
+    FILE *ptr;
+    int high_score = 0;
+    ptr = fopen("HighScore.txt", "r");
+    fscanf(ptr, "%d", &high_score);
+    return high_score;
+}
+
+
 void generate_stars(Star stars[], int count) {
     for (int i = 0; i < count; i++) {
         stars[i].x = rand() % SCREEN_WIDTH; // Randomize star x position
@@ -236,6 +261,15 @@ void render_start_screen(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_FreeSurface(button_surface);
 
     SDL_Rect button_rect = {SCREEN_WIDTH / 2 - button_surface->w / 2, SCREEN_HEIGHT / 2, button_surface->w, button_surface->h};
+    int hi = read_score();
+    TTF_Font *highscore_font = TTF_OpenFont("./PressStart2P.ttf", 14); // Load smaller font for subtitle
+    SDL_Surface *highscore_surface = TTF_RenderText_Solid(highscore_font, "HI-SCORE",subtitle_color);
+    render_text(renderer, highscore_font, 400, 10,10);
+    SDL_Texture *highscore_texture = SDL_CreateTextureFromSurface(renderer, highscore_surface);
+    SDL_FreeSurface(highscore_surface);
+
+
+    SDL_Rect highscore_rect = {SCREEN_WIDTH / 2 - highscore_surface->w / 2, SCREEN_HEIGHT / 4 + 80, highscore_surface->w, highscore_surface->h};
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Black background
     SDL_RenderClear(renderer);
@@ -243,6 +277,7 @@ void render_start_screen(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_RenderCopy(renderer, title_texture, NULL, &title_rect); // Render title
     SDL_RenderCopy(renderer, subtitle_texture, NULL, &subtitle_rect); // Render subtitle
     SDL_RenderCopy(renderer, button_texture, NULL, &button_rect); // Render button
+    SDL_RenderCopy(renderer, highscore_texture, NULL, &highscore_rect); // Render highscore
 
     SDL_RenderPresent(renderer);
 
@@ -434,7 +469,7 @@ int main(int argc, char *argv[]) {
             return 1;
         }
     }
-    IMG_Animation *bullet_animation = IMG_LoadAnimation("images/bullet.gif"); // Load bullet animation
+    IMG_Animation *bullet_animation = IMG_LoadAnimation("images/bullet2.gif"); // Load bullet animation
     if (!bullet_animation) {
         printf("Bullet animation loading failed: %s\n", IMG_GetError()); // Print error message
         SDL_DestroyRenderer(renderer);
@@ -476,7 +511,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    SDL_Texture *bullet_texture = load_texture(renderer, "images/bullet.png"); // Load bullet texture for bullets on the right
+    SDL_Texture *bullet_texture = load_texture(renderer, "images/bullet.gif"); // Load bullet texture for bullets on the right
     if (!bullet_texture) {
         // Handle error if bullet texture fails to load
         SDL_DestroyRenderer(renderer);
@@ -487,7 +522,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    SDL_Texture *active_bullet_texture = load_texture(renderer, "images/bullet2.png"); // Load bullet texture for active bullets
+    SDL_Texture *active_bullet_texture = load_texture(renderer, "images/bullet.gif"); // Load bullet texture for active bullets
     if (!active_bullet_texture) {
         // Handle error if active bullet texture fails to load
         SDL_DestroyTexture(bullet_texture);
@@ -526,7 +561,7 @@ int main(int argc, char *argv[]) {
 
     render_countdown(renderer, font); // Render countdown before starting the game
 
-    Star stars[STAR_COUNT]; // Array of stars
+    Star stars[STAR_COUNT] = {0}; // Array of stars
     srand((unsigned int)time(NULL)); // Seed random number generator
     generate_stars(stars, STAR_COUNT); // Generate stars
 
@@ -666,6 +701,7 @@ int main(int argc, char *argv[]) {
                         lives--; // Decrement lives
                         reset_meteor(&meteors[i], score); // Reset meteor
                         if (lives <= 0) { // If no lives left
+                            store_score(score);
                             display_game_over(renderer, font, score); // Display game over screen
                             score = 0; // Reset score
                             lives = INITIAL_LIFE; // Reset lives
@@ -677,7 +713,8 @@ int main(int argc, char *argv[]) {
                         if (bullets[j].active && SDL_HasIntersection(&bullets[j].rect, &meteor_collision[i])) { // If bullet collides with meteor
                             reset_meteor(&meteors[i], score); // Reset meteor
                             bullets[j].active = 0; // Deactivate bullet
-                            score++; // Increment score
+                            score += 5; // Increment score
+                            store_score(score);
                         }
                     }
                 }
@@ -722,6 +759,7 @@ int main(int argc, char *argv[]) {
         SDL_Delay(1000 / 60); // Delay for 60 FPS
     }
 
+
     for (int i = 0; i < bullet_animation->count; i++) {
         SDL_DestroyTexture(bullet_textures[i]);
     }
@@ -744,3 +782,6 @@ int main(int argc, char *argv[]) {
 
     return 0; // Return success code
 }
+
+
+
