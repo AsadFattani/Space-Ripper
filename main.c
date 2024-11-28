@@ -30,6 +30,11 @@ typedef struct {
 } Bullet;
 
 typedef struct {
+    SDL_Rect rect;
+    int active; // power up active status
+} PowerUp;
+
+typedef struct {
     SDL_Rect rect; // Rectangle for meteor
     int active; // Meteor active status
     float speed_x; // Meteor speed
@@ -106,6 +111,14 @@ void reset_meteor(Meteor *meteor, int score) {
     if (fabs(meteor->speed_x)> MAX_METEOR_SPEED){
         meteor->speed_x = (meteor->speed_x > 0 ? 1 : -1) * MAX_METEOR_SPEED; // Limit meteor speed
     }
+}
+
+void reset_powerup(PowerUp *powerup){
+    powerup->active=1;
+    powerup->rect.x = rand() % (SCREEN_WIDTH -30);
+    powerup->rect.y = -50;
+    powerup->rect.w = 30;
+    powerup->rect.h = 30;
 }
 
 void display_game_over(SDL_Renderer *renderer, TTF_Font *font, int score) {
@@ -557,6 +570,19 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
+    SDL_Texture *powerup_texture = load_texture(renderer, "images/powerup.png"); // Load powerup texture
+    if(!powerup_texture){
+        printf("Failed to load the power up texture: %s\n", IMG_GetError());
+        // Handle error if powerup texture fails to load
+        SDL_DestroyTexture(powerup_texture);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        TTF_CloseFont(font);
+        TTF_Quit();
+        SDL_Quit();
+        return 1;
+    }
+
     render_start_screen(renderer, font); // Render start screen
 
     render_countdown(renderer, font); // Render countdown before starting the game
@@ -597,6 +623,8 @@ int main(int argc, char *argv[]) {
     Uint32 last_frame_time = SDL_GetTicks(); // Initialize last frame time
     int bullet_frame = 0; // Initialize bullet animation frame
     Uint32 last_bullet_frame_time = SDL_GetTicks(); // Initialize last bullet frame time
+    PowerUp powerup; // POWERUP STRUCT VARIABLE
+    powerup.active = 0; // Deactivate powerup
 
     while (running) {
         SDL_Event event; // Event variable
@@ -727,6 +755,21 @@ int main(int argc, char *argv[]) {
             }
         }
 
+        if(score >= 100 && powerup.active == 0){
+            reset_powerup(&powerup);
+        }
+
+        if(powerup.active){
+            powerup.rect.y += 3;
+            if(powerup.rect.y > SCREEN_HEIGHT){
+                powerup.active = 0;
+            }
+        }
+        if(powerup.active && SDL_HasIntersection(&spaceship_collision, &powerup.rect)){
+            powerup.active = 0;
+            loaded_bullets = MAX_LOADED_BULLETS;
+        }
+
         SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Set background color to black
         SDL_RenderClear(renderer); // Clear renderer
 
@@ -737,6 +780,9 @@ int main(int argc, char *argv[]) {
 
         SDL_RenderCopy(renderer, spaceship_texture, NULL, &spaceship); // Render spaceship
         render_active_bullets(renderer, bullet_textures, bullets, MAX_BULLETS, bullet_frame); // Render active bullets
+        if(powerup.active){
+            SDL_RenderCopy(renderer , powerup_texture , NULL , &powerup.rect);
+        }
 
         for (int i = 0; i < MAX_METEORS; i++) {
             if (meteors[i].active) { // If meteor is active
