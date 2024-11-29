@@ -274,13 +274,13 @@ void render_start_screen(SDL_Renderer *renderer, TTF_Font *font) {
     SDL_FreeSurface(button_surface);
 
     SDL_Rect button_rect = {SCREEN_WIDTH / 2 - button_surface->w / 2, SCREEN_HEIGHT / 2, button_surface->w, button_surface->h};
+
     int hi = read_score();
-    TTF_Font *highscore_font = TTF_OpenFont("./PressStart2P.ttf", 14); // Load smaller font for subtitle
-    SDL_Surface *highscore_surface = TTF_RenderText_Solid(highscore_font, "HI-SCORE",subtitle_color);
-    render_text(renderer, highscore_font, 400, 10,10);
+    char hi_score_text[20];
+    sprintf(hi_score_text, "HI-SCORE: %d", hi);
+    SDL_Surface *highscore_surface = TTF_RenderText_Solid(subtitle_font, hi_score_text, subtitle_color);
     SDL_Texture *highscore_texture = SDL_CreateTextureFromSurface(renderer, highscore_surface);
     SDL_FreeSurface(highscore_surface);
-
 
     SDL_Rect highscore_rect = {SCREEN_WIDTH / 2 - highscore_surface->w / 2, SCREEN_HEIGHT / 4 + 80, highscore_surface->w, highscore_surface->h};
 
@@ -454,7 +454,7 @@ int main(int argc, char *argv[]) {
         return 1; // Return error code
     }
 
-    SDL_Surface *spaceship_surface = SDL_LoadBMP("images/spaceship.bmp"); // Load spaceship image
+    SDL_Surface *spaceship_surface = SDL_LoadBMP("images/spaceship2.bmp"); // Load spaceship image
     IMG_Animation *meteor_animation = IMG_LoadAnimation("images/flame-meteor.gif"); // Load meteor animation
     if (!meteor_animation) {
         printf("Meteor animation loading failed: %s\n", IMG_GetError()); // Print error message
@@ -524,7 +524,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    SDL_Texture *bullet_texture = load_texture(renderer, "images/bullet.gif"); // Load bullet texture for bullets on the right
+    SDL_Texture *bullet_texture = load_texture(renderer, "images/bullet2.gif"); // Load bullet texture for bullets on the right
     if (!bullet_texture) {
         // Handle error if bullet texture fails to load
         SDL_DestroyRenderer(renderer);
@@ -535,7 +535,7 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    SDL_Texture *active_bullet_texture = load_texture(renderer, "images/bullet.gif"); // Load bullet texture for active bullets
+    SDL_Texture *active_bullet_texture = load_texture(renderer, "images/bullet2.gif"); // Load bullet texture for active bullets
     if (!active_bullet_texture) {
         // Handle error if active bullet texture fails to load
         SDL_DestroyTexture(bullet_texture);
