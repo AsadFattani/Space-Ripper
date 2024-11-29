@@ -156,9 +156,9 @@ void display_game_over(SDL_Renderer *renderer, TTF_Font *font, int score) {
     ptr = fopen("HighScore.txt", "r");
     if (fscanf(ptr, "%d", &high_score) == 1) {
         if (score >= high_score) {
-            sprintf(score_text, "New-Hi-Score: %d", score);
+            sprintf(score_text, "NEW-HI-SCORE: %d", score);
         }else{
-            sprintf(score_text, "Score: %d", score);
+            sprintf(score_text, "SCORE: %d", score);
     }
     }
     surface = TTF_RenderText_Solid(smallest_font, score_text, shadow_color);
