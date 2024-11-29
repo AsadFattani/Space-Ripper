@@ -128,6 +128,7 @@ void display_game_over(SDL_Renderer *renderer, TTF_Font *font, int score) {
 
     TTF_Font *large_font = TTF_OpenFont("./PressStart2P.ttf", 36); // Load larger font for "GAME OVER"
     TTF_Font *small_font = TTF_OpenFont("./PressStart2P.ttf", 24); // Load smaller font for score and button
+    TTF_Font *smallest_font = TTF_OpenFont("./PressStart2P.ttf", 18); // Load smaller font for score and button
 
     SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255); // Set background color to black
     SDL_RenderClear(renderer); // Clear renderer
@@ -150,8 +151,17 @@ void display_game_over(SDL_Renderer *renderer, TTF_Font *font, int score) {
 
     // Render score text with shadow
     char score_text[20];
-    sprintf(score_text, "Score: %d", score);
-    surface = TTF_RenderText_Solid(small_font, score_text, shadow_color);
+    FILE *ptr;
+    int high_score = 0;
+    ptr = fopen("HighScore.txt", "r");
+    if (fscanf(ptr, "%d", &high_score) == 1) {
+        if (score >= high_score) {
+            sprintf(score_text, "New-Hi-Score: %d", score);
+        }else{
+            sprintf(score_text, "Score: %d", score);
+    }
+    }
+    surface = TTF_RenderText_Solid(smallest_font, score_text, shadow_color);
     texture = SDL_CreateTextureFromSurface(renderer, surface);
     int surface_w = surface->w;
     int surface_h = surface->h;
@@ -755,7 +765,7 @@ int main(int argc, char *argv[]) {
             }
         }
 
-        if(score >= 100 && powerup.active == 0){
+        if(score >= 100 && score % 50 == 0 && powerup.active == 0){
             reset_powerup(&powerup);
         }
 
