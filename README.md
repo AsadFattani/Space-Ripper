@@ -1,3 +1,4 @@
+
 <!-- Intro-->
 
 
@@ -15,7 +16,7 @@
 <!-- Project title -->
 
 <div align="center">
-<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=4000&pause=5000&background=FFFFFF00&center=true&vCenter=true&multiline=true&width=435&lines=This is meant to be title&color=ff0000">
+<img src="https://readme-typing-svg.demolab.com?font=Fira+Code&size=22&duration=4000&pause=5000&background=FFFFFF00&center=true&vCenter=true&multiline=true&width=435&lines=SPACE RIPPER&color=ff0000">
 </div>
 
 
@@ -52,10 +53,11 @@ This repository is dedicated to our group project assigned in the **Programming 
 
 
 <!--Demo-->
-<!--
-* to be added
--->
+## Demo
+https://github.com/user-attachments/assets/c8bb1501-1e8c-4393-b143-72763b05e1c8
 
+
+[Watch the Demo]([https://github.com/YOUR-USERNAME/REPO-NAME/blob/main/path-to-video.mp4](https://github.com/AsadFattani/Space-Ripper/blob/main/Space%20Ripper%20Demo.mp4))
 
 ## Table of Contents
 <!-- 
@@ -116,13 +118,18 @@ This repository is dedicated to our group project assigned in the **Programming 
 
 ## Contributors
 
-
+<!--
 <img src="https://github.com/user-attachments/assets/73be0004-462c-4429-8885-a3ea99dff7bf" border-radius = "60%" width = "100px" height = "auto" alt = "ASAD IMRAN">
 &nbsp;&nbsp;&nbsp;
 <img src="https://github.com/user-attachments/assets/58b60669-9c01-4807-b784-55d18e2e2abf" border-radius = "60%" width = "100px" height = "auto" alt = "BURAIR ALI">
 &nbsp;&nbsp;&nbsp;
 <img src="https://github.com/user-attachments/assets/74f3d4b3-6f19-4552-9e26-964cdfec4525" border-radius = "60%" width = "100px" height = "auto" alt = "OMER SHAHID">
 &nbsp;&nbsp;&nbsp;
+-->
+
+<a href="https://github.com/AsadFattani/Space-Ripper/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=AsadFattani/Space-Ripper" />
+
 
 
 ## Acknowledgments<!-- Optional -->
